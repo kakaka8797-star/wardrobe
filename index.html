@@ -28,7 +28,7 @@ padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--bg);bor
 .top button{background:none;border:0;font-size:22px;padding:6px 8px;color:var(--ink)}
 main{max-width:980px;margin:0 auto;padding:14px 14px calc(92px + env(safe-area-inset-bottom))}
 .bottom{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.bottom a{flex:1;text-align:center;padding:8px 2px 7px;text-decoration:none;color:var(--mute);font-size:11px;font-weight:600}
+.bottom a{flex:1;min-width:0;text-align:center;padding:8px 1px 7px;text-decoration:none;color:var(--mute);font-size:10.5px;font-weight:600}
 .bottom a span{display:block;font-size:21px;line-height:1.2}
 .bottom a.on{color:var(--acc)}
 h2{font-size:19px;margin:6px 0 10px}
@@ -88,6 +88,12 @@ details.more summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--m
 .thumbs figure{margin:0}
 .thumbs img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;background:var(--acc-soft);display:block}
 .thumbs figcaption{font-size:11px;line-height:1.2;margin-top:3px;color:var(--mute)}
+.trow{display:flex;gap:12px;align-items:flex-start}
+.trow>img{width:76px;aspect-ratio:4/5;object-fit:cover;border-radius:10px;flex:none;background:var(--acc-soft)}
+.trow .tx{min-width:0;flex:1}
+.trow p{margin:4px 0}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+a.btn{display:inline-block;text-decoration:none;text-align:center;line-height:22px}
 .skins{display:flex;flex-wrap:wrap;gap:8px}
 .skin{display:flex;align-items:center;gap:7px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px 6px 7px;font-size:14px;font-family:inherit}
 .skin i{width:22px;height:22px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
@@ -113,6 +119,7 @@ font-size:14px;max-width:92vw;opacity:0;pointer-events:none;transition:opacity .
   <a href="#add" data-r="add"><span>➕</span>Add</a>
   <a href="#suggest" data-r="suggest"><span>✨</span>Suggest</a>
   <a href="#outfits" data-r="outfits"><span>📒</span>Outfits</a>
+  <a href="#trends" data-r="trends"><span>🔥</span>Trends</a>
   <a href="#profile" data-r="profile"><span>👤</span>Profile</a>
 </nav>
 <div id="sheet" class="sheet hidden"></div>
@@ -269,7 +276,8 @@ const S = {
   drafts: [], seen: new Set(), busy: false, prog: '',
   filter: {q: '', cat: 'all', colors: [], styles: []},
   sp: {event: EVENTS[0], weather: WEATHERS[0], useTemp: false, temp: 28, note: ''},
-  sug: null, sugSeen: [], sugBusy: false, edit: null, seg: 'fav', installEvt: null
+  sug: null, sugSeen: [], sugBusy: false, edit: null, seg: 'fav', installEvt: null,
+  trend: null, trendBusy: false, city: localStorage.getItem('gw_city') || 'India'
 };
 window.__S = S; // sirf testing ke liye
 
@@ -427,7 +435,8 @@ function retryDelay(msg) {
   return m ? parseFloat(m[1]) : 8;
 }
 
-async function callGemini(parts, {json = true, temperature = 0.4} = {}) {
+let lastMeta = null;
+async function callGemini(parts, {json = true, temperature = 0.4, tools = null, timeout = 45000} = {}) {
   const key = getKey();
   if (!key) throw new Error('Pehle Settings mein Gemini API key daalo.');
   let models = getModels();
@@ -438,19 +447,20 @@ async function callGemini(parts, {json = true, temperature = 0.4} = {}) {
       if (Date.now() > deadline) break;
       try {
         const body = {contents: [{role: 'user', parts}], generationConfig: {temperature}};
-        if (json) body.generationConfig.responseMimeType = 'application/json';
+        if (tools) body.tools = tools; else if (json) body.generationConfig.responseMimeType = 'application/json';
         const d = await fetchJSON(`${API}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
-          {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+          {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}, timeout);
         const cand = d && d.candidates && d.candidates[0];
         const text = cand && cand.content && cand.content.parts ? cand.content.parts.filter(p => p.text && !p.thought).map(p => p.text).join('') : '';
         if (text) {
+          lastMeta = (cand && cand.groundingMetadata) || null;
           const order = [model, ...models.filter(m => m !== model)]; setModels(order); localStorage.setItem('gw_last_model', model);
           return text;
         }
         log.push(`${model}: khaali jawab aaya`); break;
       } catch (e) {
         const msg = String(e.raw || e.message || e), low = msg.toLowerCase();
-        if (e.timeout) { log.push(`${model}: 45 sec mein jawab nahi aaya (time-out)`); break; }
+        if (e.timeout) { log.push(`${model}: ${Math.round(timeout / 1000)} sec mein jawab nahi aaya (time-out)`); break; }
         if (low.includes('api_key_invalid') || low.includes('api key not valid') || e.status === 403)
           throw new Error('API key galat hai ya kaam nahi kar rahi. Nayi key banake Settings mein daalo.');
         if (e.status === 429 || low.includes('resource_exhausted')) {
@@ -795,6 +805,101 @@ VIEWS.outfits = () => {
     <button class="btn danger" data-act="delHist" data-id="${h.id}">🗑️ Hatao</button></section>`).join('');
 };
 
+/* ---------- TRENDS ---------- */
+async function askTrends(useSearch) {
+  const p = S.profile, today = new Date().toISOString().slice(0, 10), city = (S.city || 'India').trim() || 'India';
+  const prompt = `You are a sharp, honest Indian fashion trend analyst and personal stylist. Today's date is ${today}. The user lives in: ${city}.
+${useSearch ? `FIRST use Google Search to check what is CURRENTLY trending in fashion in ${city} / India right now (street style, latest brand collections, fashion media, seasonal trends for the next 1-3 months). Do NOT rely on memory for trends.` : 'Use your best knowledge of current fashion trends and say clearly that it may be slightly outdated.'}
+USER PROFILE: ${profileText(p)}
+USER'S WARDROBE (JSON list): ${JSON.stringify(S.items.map(itemForAI))}
+
+TASKS:
+1. "outdated": pick up to 6 wardrobe items that now look dated or out of fashion (cuts, fits, prints, colours, styling that have gone out). Be honest but kind. If an item is a timeless classic, do NOT call it outdated. For each give: id, reason (Hinglish, specific: what changed in the trend), refresh (Hinglish: how to restyle it or what to replace it with).
+2. "keep": up to 5 ids of items that are classic or currently on-trend, with a short Hinglish reason.
+3. "buy": 4 to 6 currently trending pieces the user should buy, tailored to their gender, height, build, skin tone/undertone and the gaps in their wardrobe. Each: name (specific, e.g. "waffle-knit t-shirt"), category (one of top, bottom, shoes, outerwear, accessory), why (Hinglish: why it is trending now AND why it suits this user), colors (2-3 shade names that suit their skin tone), fit (fit/length advice for their height and build), pairs_with (up to 3 wardrobe ids it would go with), search (a short shopping search query).
+4. "summary": 2-3 lines in Hinglish about what is trending overall right now.
+Do not invent prices, brand offers or links. If you are unsure about something, say so.
+Reply with ONLY one JSON object, no extra text: {"summary": "", "outdated": [{"id": "", "reason": "", "refresh": ""}], "keep": [{"id": "", "reason": ""}], "buy": [{"name": "", "category": "", "why": "", "colors": [], "fit": "", "pairs_with": [], "search": ""}]}`;
+  const opts = useSearch ? {tools: [{google_search: {}}], timeout: 90000, temperature: 0.5} : {json: true, timeout: 60000, temperature: 0.6};
+  const text = await callGemini([{text: prompt}], opts);
+  const r = parseJSON(text);
+  let sources = [], queries = [];
+  if (useSearch && lastMeta) {
+    const seen = new Set();
+    for (const c of lastMeta.groundingChunks || []) {
+      const w = c.web; if (w && /^https?:\/\//.test(w.uri || '') && !seen.has(w.uri)) { seen.add(w.uri); sources.push({title: w.title || w.uri, uri: w.uri}); }
+    }
+    queries = lastMeta.webSearchQueries || [];
+  }
+  return {r, sources: sources.slice(0, 6), grounded: !!(useSearch && (sources.length || queries.length))};
+}
+function cleanTrend(r, items) {
+  const by = new Map(items.map(i => [i.id, i])), arr = x => (Array.isArray(x) ? x : []);
+  const known = id => by.has(String(id));
+  return {
+    summary: String(r.summary || ''),
+    outdated: arr(r.outdated).filter(o => o && known(o.id)).slice(0, 6).map(o => ({id: String(o.id), reason: String(o.reason || ''), refresh: String(o.refresh || '')})),
+    keep: arr(r.keep).filter(o => o && known(o.id)).slice(0, 5).map(o => ({id: String(o.id), reason: String(o.reason || '')})),
+    buy: arr(r.buy).filter(b => b && b.name).slice(0, 6).map(b => ({
+      name: String(b.name), category: norm(b.category, CATEGORIES, 'top'), why: String(b.why || ''), colors: arr(b.colors).map(String).slice(0, 4),
+      fit: String(b.fit || ''), pairs_with: arr(b.pairs_with).map(String).filter(known).slice(0, 3), search: String(b.search || b.name)
+    }))
+  };
+}
+function trendHTML() {
+  if (S.trendBusy) return '<div class="card"><span class="spin"></span>Google par aaj ke trends dekh raha hoon... (30-60 second lag sakte hain)</div>';
+  const t = S.trend;
+  if (!t) return '<div class="empty"><div class="big">🔥</div>Abhi koi report nahi.<br>Upar "Trend check karo" dabao.</div>';
+  const by = new Map(S.items.map(i => [i.id, i]));
+  const row = (id, body) => { const it = by.get(id); return it ? `<section class="card trow"><img src="${it.thumb || it.img}" alt=""><div class="tx"><div class="ititle">${swatch(it.color)}${esc(itemTitle(it))}</div>${body}</div></section>` : ''; };
+  let h = `<div class="small mute" style="margin-bottom:8px">Last check: ${esc(t.date)} · ${esc(t.city)} · ${t.grounded ? '🌐 Live Google Search se' : '⚠️ Live search nahi ho paya, AI ke general knowledge se (thoda purana ho sakta hai)'}</div>`;
+  if (t.summary) h += `<div class="note ok reason">📰 ${esc(t.summary)}</div>`;
+  const out = t.outdated.map(o => row(o.id, `<p class="reason small">${esc(o.reason)}</p>${o.refresh ? `<p class="small"><b>Kya karein:</b> ${esc(o.refresh)}</p>` : ''}`)).join('');
+  h += out ? `<h3>⚠️ Ye kapde ab purane lag sakte hain</h3>${out}` : '<div class="note">Koi kapda bahut purana nahi laga 👍</div>';
+  const keep = t.keep.map(o => row(o.id, `<p class="reason small">${esc(o.reason)}</p>`)).join('');
+  if (keep) h += `<h3>✅ Ye abhi bhi chalenge</h3>${keep}`;
+  if (t.buy.length) {
+    h += '<h3>🛍️ Ye trending cheezein lo</h3>' + t.buy.map(b => {
+      const cols = b.colors.map(c => { const n = norm(c, COLOR_NAMES, null); return `<span class="chip">${n ? swatch(n, 11) : ''}${esc(c)}</span>`; }).join('');
+      const pairs = b.pairs_with.map(id => by.get(id)).filter(Boolean);
+      const q = encodeURIComponent(b.search);
+      return `<section class="card"><div class="ititle" style="font-size:16px">${esc(titleCase(b.name))} <span class="chip">${esc(CAT_LABEL[b.category] || b.category)}</span></div>
+      <p class="reason small">${esc(b.why)}</p>${cols ? `<div>${cols}</div>` : ''}${b.fit ? `<p class="small"><b>Fit:</b> ${esc(b.fit)}</p>` : ''}
+      ${pairs.length ? `<div class="lbl">Aapke in kapdon ke saath chalega</div><div class="thumbs">${pairs.map(it => `<figure><img src="${it.thumb || it.img}" alt=""><figcaption>${esc(itemTitle(it))}</figcaption></figure>`).join('')}</div>` : ''}
+      <div class="links"><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=shop&q=${q}">🛍️ Shop dekho</a><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${q}%20outfit">🖼️ Photos dekho</a></div></section>`;
+    }).join('');
+  }
+  if (t.sources && t.sources.length) h += `<details class="more"><summary>Sources (${t.sources.length})</summary>${t.sources.map(x => `<div class="small"><a href="${esc(x.uri)}" target="_blank" rel="noopener" style="color:var(--acc)">${esc(x.title)}</a></div>`).join('')}</details>`;
+  return h;
+}
+VIEWS.trends = () => `${banner()}<h2>🔥 Trend Check</h2>
+  <p class="small mute">AI Google se aaj ke fashion trends dekhta hai, phir batata hai ki aapke kaun se kapde purane ho gaye aur kya naya lena chahiye.</p>
+  ${S.profile ? '' : '<div class="note">💡 <a href="#profile">Profile</a> bharoge to suggestions aapke height, build aur skin tone ke hisaab se milenge.</div>'}
+  <div class="field" style="margin-bottom:10px"><label>Shehar / Country (trend yahin ka dekhega)</label><input type="text" data-tr="city" value="${esc(S.city)}"></div>
+  <div class="row"><button class="btn primary big" data-act="trends"${S.trendBusy ? ' disabled' : ''}>🔥 Trend check karo</button></div>
+  <div id="trendBox">${trendHTML()}</div>`;
+async function runTrends() {
+  if (S.trendBusy) return;
+  if (!getKey()) { toast('Pehle Settings mein API key daalo.'); location.hash = '#settings'; return; }
+  S.trendBusy = true; const box = $('#trendBox'); if (box) box.innerHTML = trendHTML();
+  const btn = document.querySelector('[data-act="trends"]'); if (btn) btn.disabled = true;
+  let err = null;
+  try {
+    let res;
+    try { res = await askTrends(true); }
+    catch (e) { if (/galat|Internet/.test(e.message)) throw e; res = await askTrends(false); }
+    const clean = cleanTrend(res.r, S.items);
+    if (!clean.buy.length && !clean.outdated.length) throw new Error('AI ne kaam ka jawab nahi diya. Dobara try karo.');
+    S.trend = {...clean, date: now(), city: (S.city || 'India').trim() || 'India', grounded: res.grounded, sources: res.sources};
+    try { await DB.setKV('trend', S.trend); } catch (e) { /* report show ho jayegi, bas save nahi hui */ }
+  } catch (e) { err = e.message; toast(err, 6000); }
+  S.trendBusy = false;
+  if (S.route === 'trends') {
+    const b = $('#trendBox'); if (b) b.innerHTML = (err ? `<div class="note err reason">${esc(err)}</div>` : '') + trendHTML();
+    const bt = document.querySelector('[data-act="trends"]'); if (bt) bt.disabled = false;
+  }
+}
+
 /* ---------- PROFILE ---------- */
 VIEWS.profile = () => {
   const p = S.pf, opt = (list, v) => list.map(x => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
@@ -901,6 +1006,7 @@ const ACTIONS = {
   async delFav(el) { S.favs = S.favs.filter(f => f.id !== el.dataset.id); await DB.setKV('favs', S.favs); render(); },
   async delHist(el) { S.hist = S.hist.filter(f => f.id !== el.dataset.id); await DB.setKV('hist', S.hist); render(); },
   seg(el) { S.seg = el.dataset.v; render(); },
+  trends() { runTrends(); },
   setSkin(el) { S.pf.skin = el.dataset.v; render(); },
   async saveProfile() {
     const p = {...S.pf, height: Math.min(230, Math.max(100, parseInt(S.pf.height, 10) || 170))};
@@ -934,7 +1040,7 @@ const ACTIONS = {
   async wipe() {
     if (!confirm('Saara data (kapde, outfits, profile) delete ho jayega. Pakka?')) return;
     if (!confirm('Aakhri baar puchh raha hoon: sab kuch delete karein?')) return;
-    await DB.wipe(); S.items = []; S.favs = []; S.hist = []; S.profile = null; S.pf = {...PROFILE_DEFAULT}; S.sug = null; render(); toast('Sab data delete ho gaya.');
+    await DB.wipe(); S.items = []; S.favs = []; S.hist = []; S.profile = null; S.pf = {...PROFILE_DEFAULT}; S.sug = null; S.trend = null; render(); toast('Sab data delete ho gaya.');
   },
   async install() { if (!S.installEvt) return; S.installEvt.prompt(); await S.installEvt.userChoice.catch(() => {}); S.installEvt = null; render(); }
 };
@@ -975,6 +1081,7 @@ document.addEventListener('input', e => {
     if (k === 'temp') { const t = $('#tempVal'); if (t) t.textContent = el.value; }
     return;
   }
+  if (el.dataset.tr) { S.city = el.value; localStorage.setItem('gw_city', el.value); return; }
   if (el.dataset.pf) {
     S.pf[el.dataset.pf] = el.value;
     if (el.dataset.pf === 'height') { const inch = Math.round((+el.value || 0) / 2.54), e2 = $('#inch'); if (e2) e2.textContent = `≈ ${Math.floor(inch / 12)} ft ${inch % 12} in`; }
@@ -1022,6 +1129,7 @@ window.addEventListener('unhandledrejection', e => { console.error(e.reason); to
     S.profile = await DB.getKV('profile', null);
     S.favs = await DB.getKV('favs', []);
     S.hist = await DB.getKV('hist', []);
+    S.trend = await DB.getKV('trend', null);
     if (S.profile) S.pf = {...PROFILE_DEFAULT, ...S.profile};
   } catch (e) {
     $('#view').innerHTML = `<div class="note err">Phone ki storage khul nahi paayi: ${esc(e.message)}<br>Private/Incognito mode mein na kholo.</div>`;
