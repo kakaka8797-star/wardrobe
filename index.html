@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2F6F73">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wardrobe">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>AI Wardrobe</title>
+<style>
+:root{--bg:#FAF8F5;--card:#FFFFFF;--ink:#25303B;--mute:#6B7580;--line:#E6E0D8;--acc:#2F6F73;--on-acc:#FFFFFF;
+--acc-soft:rgba(47,111,115,.12);--danger:#B4493F;--warn:#8A6A1F;--warn-bg:rgba(200,160,40,.14);--ok-bg:rgba(47,111,115,.12);--err-bg:rgba(180,73,63,.12)}
+@media (prefers-color-scheme:dark){:root{--bg:#14181C;--card:#1E252B;--ink:#E7ECEF;--mute:#9AA6AF;--line:#2D363D;--acc:#5FB3B6;--on-acc:#0E1A1B;
+--acc-soft:rgba(95,179,182,.16);--danger:#E07B6F;--warn:#E3C26A;--warn-bg:rgba(227,194,106,.14);--ok-bg:rgba(95,179,182,.14);--err-bg:rgba(224,123,111,.14)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;font-size:16px;line-height:1.4}
+html{scroll-padding-bottom:100px;scroll-padding-top:70px}
+body{min-height:100vh;min-height:100dvh}
+body.noscroll{overflow:hidden}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .title{font-size:20px;font-weight:700}
+.top button{background:none;border:0;font-size:22px;padding:6px 8px;color:var(--ink)}
+main{max-width:980px;margin:0 auto;padding:14px 14px calc(92px + env(safe-area-inset-bottom))}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bottom a{flex:1;text-align:center;padding:8px 2px 7px;text-decoration:none;color:var(--mute);font-size:11px;font-weight:600}
+.bottom a span{display:block;font-size:21px;line-height:1.2}
+.bottom a.on{color:var(--acc)}
+h2{font-size:19px;margin:6px 0 10px}
+h3{font-size:16px;margin:14px 0 8px}
+.mute{color:var(--mute)}.small{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 14px;border-radius:12px;font-size:15px;font-weight:600;min-height:44px;cursor:pointer;font-family:inherit}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn.big{padding:16px 10px;font-size:16px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.row>.btn{flex:1 1 0;min-width:0}
+.row.two>.btn,.row.three>.btn{flex:1 1 calc(50% - 8px)}
+@media (min-width:600px){.row.three>.btn{flex:1 1 0}}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label,.lbl{font-size:12px;font-weight:600;color:var(--mute)}
+select,input[type=text],input[type=password],input[type=number],textarea{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;
+background:var(--card);color:var(--ink);font-size:16px;font-family:inherit}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.field.full{grid-column:1/-1}
+@media (min-width:700px){.form{grid-template-columns:1fr 1fr 1fr}}
+.selrow{display:flex;align-items:center;gap:8px}
+.selrow .swatch{margin:0;flex:none}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:900px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.icard{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer}
+.icard img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--acc-soft)}
+.icard .meta{padding:8px 10px 10px}
+.chip{display:inline-block;padding:1px 8px;margin:3px 4px 0 0;border-radius:999px;background:var(--acc-soft);font-size:12px}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(110,110,110,.5);vertical-align:-2px;margin-right:6px}
+.ititle{font-weight:700;font-size:14px;line-height:1.3}
+.pills{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:600;font-family:inherit}
+.pill.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.pill small{opacity:.7;margin-left:3px}
+details.more{margin:0 0 12px}
+details.more summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--mute);padding:6px 0}
+.note{padding:9px 11px;border-radius:10px;font-size:14px;margin:8px 0;background:var(--acc-soft)}
+.note.ok{background:var(--ok-bg)}.note.err{background:var(--err-bg);color:var(--danger)}.note.warn{background:var(--warn-bg);color:var(--warn)}
+.note.mute{background:transparent;color:var(--mute);padding-left:0}
+.note .chk{display:flex;gap:8px;align-items:center;margin-top:6px;color:var(--ink)}
+.banner{background:var(--warn-bg);color:var(--ink);border-radius:12px;padding:11px 13px;margin-bottom:12px;font-size:14px}
+.banner a{color:var(--acc);font-weight:700}
+.empty{text-align:center;padding:36px 16px;color:var(--mute)}
+.empty .big{font-size:44px}
+.dimg{display:block;width:100%;max-height:300px;object-fit:contain;border-radius:12px;background:var(--acc-soft)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.seg{display:flex;background:var(--acc-soft);border-radius:12px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:9px;border-radius:10px;font-weight:700;color:var(--mute);font-size:14px;font-family:inherit}
+.seg button.on{background:var(--card);color:var(--ink)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin:8px 0}
+.thumbs figure{margin:0}
+.thumbs img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;background:var(--acc-soft);display:block}
+.thumbs figcaption{font-size:11px;line-height:1.2;margin-top:3px;color:var(--mute)}
+.skins{display:flex;flex-wrap:wrap;gap:8px}
+.skin{display:flex;align-items:center;gap:7px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px 6px 7px;font-size:14px;font-family:inherit}
+.skin i{width:22px;height:22px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+.skin.on{border-color:var(--acc);background:var(--acc-soft);font-weight:700}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet.hidden{display:none}
+.panel{background:var(--bg);width:100%;max-width:700px;max-height:92vh;max-height:92dvh;overflow-y:auto;border-radius:22px 22px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet img.hero{display:block;width:100%;max-height:48vh;object-fit:contain;border-radius:14px;background:var(--acc-soft);margin-bottom:10px}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#25303B;color:#fff;padding:10px 16px;border-radius:12px;z-index:70;
+font-size:14px;max-width:92vw;opacity:0;pointer-events:none;transition:opacity .2s;text-align:center}
+#toast.show{opacity:1}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0;border-bottom:1px solid var(--line)}
+.kv:last-child{border:0}
+.reason{white-space:pre-wrap}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header class="top"><div class="title">👗 AI Wardrobe</div><button id="btnSettings" data-act="goSettings" aria-label="Settings">⚙️</button></header>
+<main id="view"></main>
+<nav class="bottom">
+  <a href="#wardrobe" data-r="wardrobe"><span>🧺</span>Wardrobe</a>
+  <a href="#add" data-r="add"><span>➕</span>Add</a>
+  <a href="#suggest" data-r="suggest"><span>✨</span>Suggest</a>
+  <a href="#outfits" data-r="outfits"><span>📒</span>Outfits</a>
+  <a href="#profile" data-r="profile"><span>👤</span>Profile</a>
+</nav>
+<div id="sheet" class="sheet hidden"></div>
+<div id="toast"></div>
+<input type="file" id="fileGallery" accept="image/*" multiple class="hide">
+<input type="file" id="fileCamera" accept="image/*" capture="environment" class="hide">
+<input type="file" id="fileSelfie" accept="image/*" capture="user" class="hide">
+<input type="file" id="fileImport" accept="application/json,.json" class="hide">
+
+<script>
+(() => {
+'use strict';
+
+/* ====================================================================
+   OPTIONS (dropdown lists)
+==================================================================== */
+const CATEGORIES = ['top', 'bottom', 'shoes', 'outerwear', 'fullbody', 'accessory'];
+const CAT_LABEL = {top: '👕 Top', bottom: '👖 Bottom', shoes: '👟 Shoes', outerwear: '🧥 Outerwear', fullbody: '👗 Full outfit / Set', accessory: '⌚ Accessory'};
+const SUBS = {
+  top: ['t-shirt', 'polo t-shirt', 'casual shirt', 'formal shirt', 'henley', 'tank top', 'sweatshirt', 'hoodie', 'sweater', 'kurta', 'short kurta', 'crop top', 'blouse', 'tunic / kurti', 'other'],
+  bottom: ['jeans', 'chinos', 'formal trousers', 'cargo pants', 'joggers', 'track pants', 'shorts', 'skirt', 'leggings', 'palazzo', 'pyjama / churidar', 'other'],
+  shoes: ['sneakers', 'formal shoes', 'loafers', 'sports shoes', 'sandals', 'slippers / flip-flops', 'boots', 'heels', 'flats', 'juttis / mojaris', 'other'],
+  outerwear: ['jacket', 'denim jacket', 'leather jacket', 'bomber jacket', 'blazer', 'coat', 'windcheater / raincoat', 'shrug', 'nehru jacket / waistcoat', 'other'],
+  fullbody: ['saree', 'lehenga', 'salwar suit', 'kurta set', 'dress', 'jumpsuit', 'sherwani', 'other'],
+  accessory: ['watch', 'belt', 'bag / backpack', 'cap / hat', 'sunglasses', 'scarf / stole', 'jewellery', 'tie', 'other']
+};
+const SUB_ALIASES = {shirt: 'casual shirt', tee: 't-shirt', tshirt: 't-shirt', 't shirt': 't-shirt', tshirts: 't-shirt', polo: 'polo t-shirt',
+  trousers: 'formal trousers', pants: 'chinos', sneaker: 'sneakers', shoes: 'sneakers', pajama: 'pyjama / churidar', pyjama: 'pyjama / churidar'};
+const FITS = {
+  top: ['slim fit', 'regular fit', 'relaxed fit', 'oversized', 'boxy', 'cropped'],
+  bottom: ['skinny', 'slim fit', 'straight fit', 'regular fit', 'tapered', 'relaxed', 'baggy', 'loose', 'bootcut', 'wide-leg'],
+  outerwear: ['slim fit', 'regular fit', 'relaxed fit', 'oversized', 'cropped']
+};
+const SLEEVES = ['sleeveless', 'half sleeve', 'three-quarter sleeve', 'full sleeve'];
+const NECKS = ['round neck', 'v-neck', 'polo collar', 'shirt collar', 'mandarin collar', 'hooded', 'high / turtle neck', 'henley placket', 'other'];
+const LENGTHS = {
+  bottom: ['full length', 'ankle length', 'three-quarter (capri)', 'knee length', 'above knee'],
+  fullbody: ['mini', 'knee length', 'midi', 'maxi', 'full length']
+};
+const FABRICS = ['cotton', 'linen', 'denim', 'polyester', 'wool / knit', 'silk / satin', 'leather', 'fleece', 'chiffon / georgette', 'synthetic blend', 'not sure'];
+const PATTERNS = ['solid', 'striped', 'checked', 'printed', 'floral', 'graphic / logo', 'colorblock', 'textured', 'embroidered'];
+const STYLES = ['casual', 'smart casual', 'formal', 'party', 'sporty', 'ethnic', 'streetwear'];
+const WARMTH = ['light', 'medium', 'warm'];
+const APPLIES = {fit: ['top', 'bottom', 'outerwear'], sleeve: ['top', 'outerwear', 'fullbody'], neck: ['top'], length: ['bottom', 'fullbody']};
+const DEP = ['fit', 'sleeve', 'neck', 'length'];
+const FIELD_LABEL = {fit: 'Fit', sleeve: 'Sleeves', neck: 'Neckline / Collar', length: 'Length'};
+const COLORS = {
+  'white': '#FFFFFF', 'off-white': '#F4F0E6', 'cream': '#FFF3C4', 'beige': '#D8C3A5', 'sand': '#C2B280', 'khaki': '#BDB76B', 'tan': '#D2B48C',
+  'light brown': '#A67B5B', 'brown': '#6B4226', 'dark brown': '#3B2314', 'maroon': '#800000', 'burgundy': '#6D1A36', 'red': '#D62828',
+  'coral': '#FF6F61', 'orange': '#F28C28', 'rust': '#B7410E', 'mustard': '#E1AD01', 'yellow': '#FFE135', 'lime green': '#A4DE02',
+  'light green': '#90EE90', 'mint green': '#98FF98', 'olive green': '#708238', 'dark green': '#1B5E20', 'bottle green': '#006A4E',
+  'teal': '#008080', 'turquoise': '#30D5C8', 'sky blue': '#87CEEB', 'light blue': '#ADD8E6', 'blue': '#1E63D6', 'royal blue': '#2B4BCE',
+  'navy blue': '#1F2A5A', 'light denim blue': '#9DB4CE', 'denim blue': '#4F6D8F', 'dark denim blue': '#2B3A55', 'lavender': '#B9A4DB',
+  'purple': '#7B3FA0', 'magenta': '#C2185B', 'light pink': '#FADADD', 'pink': '#F4A6C0', 'hot pink': '#FF3E96', 'peach': '#FFCBA4',
+  'light grey': '#CFCFCF', 'grey': '#8E8E8E', 'charcoal': '#36454F', 'black': '#111111', 'silver': '#C0C0C0', 'gold': '#D4AF37', 'multicolor': 'multi'
+};
+const COLOR_NAMES = Object.keys(COLORS);
+const COLOR2 = ['none', ...COLOR_NAMES];
+const EVENTS = ['Office', 'Party', 'Casual outing', 'Date', 'Wedding / Festival', 'College', 'Gym / Sports', 'Travel', 'Interview', 'Formal dinner'];
+const WEATHERS = ['Hot', 'Humid', 'Pleasant', 'Cold', 'Rainy'];
+const GENDERS = ['Male', 'Female', 'Other / Prefer not to say'];
+const BUILDS = ['slim', 'average', 'athletic / muscular', 'broad / heavy'];
+const SKIN_TONES = {'fair': '#F6D7C3', 'light': '#EBC3A3', 'wheatish': '#D9A877', 'medium (tan)': '#BE8A5A', 'brown': '#8D5A3B', 'dark': '#5A3825'};
+const UNDERTONES = ['warm', 'cool', 'neutral', 'not sure'];
+const FIT_PREFS = ['no preference', 'slim / fitted', 'regular', 'loose / relaxed'];
+const PROFILE_DEFAULT = {name: '', gender: 'Male', height: 170, build: 'average', skin: 'wheatish', undertone: 'not sure', fit_pref: 'no preference', fav_colors: '', avoid_colors: ''};
+
+/* ====================================================================
+   SMALL HELPERS
+==================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const uid = () => Math.random().toString(16).slice(2, 12).padEnd(10, '0');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const titleCase = s => String(s || '').replace(/\b\w/g, c => c.toUpperCase());
+const now = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+
+function lev(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  let p = Array.from({length: n + 1}, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const c = [i];
+    for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    p = c;
+  }
+  return p[n];
+}
+function norm(value, options, def = null) {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (!v) return def;
+  const low = new Map(options.map(o => [String(o).toLowerCase(), o]));
+  if (low.has(v)) return low.get(v);
+  const keys = [...low.keys()].filter(k => k !== 'other' && k !== 'none' && (k.includes(v) || v.includes(k)));
+  if (keys.length) { keys.sort((a, b) => Math.abs(a.length - v.length) - Math.abs(b.length - v.length)); return low.get(keys[0]); }
+  let best = null, bs = 0;
+  for (const k of low.keys()) { const s = 1 - lev(v, k) / Math.max(v.length, k.length); if (s > bs) { bs = s; best = k; } }
+  return bs >= 0.6 ? low.get(best) : def;
+}
+function splitSub(cat, value) {
+  let v = String(value ?? '').trim().toLowerCase();
+  v = SUB_ALIASES[v] || v;
+  if (!v) return [SUBS[cat][0], ''];
+  if (SUBS[cat].includes(v)) return [v, ''];
+  const m = norm(v, SUBS[cat].filter(s => s !== 'other'), null);
+  if (m && v.length > 3) return [m, ''];
+  return ['other', v];
+}
+const applies = (f, cat) => APPLIES[f].includes(cat);
+function fieldOptions(f, cat) { return f === 'fit' ? FITS[cat] : f === 'sleeve' ? SLEEVES : f === 'neck' ? NECKS : LENGTHS[cat]; }
+function defaultFor(f, opts) { const pref = {fit: 'regular fit', sleeve: 'half sleeve', neck: 'round neck'}[f]; return opts.includes(pref) ? pref : opts[0]; }
+
+/* ====================================================================
+   STORAGE (IndexedDB - sab kuch aapke phone mein hi)
+==================================================================== */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('ai-wardrobe', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('items', {keyPath: 'id'}); d.createObjectStore('kv', {keyPath: 'k'}); };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  tx(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode);
+      const rq = fn(t.objectStore(store));
+      t.oncomplete = () => res(rq && rq.result);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error || new Error('Storage abort'));
+    });
+  },
+  all() { return this.tx('items', 'readonly', s => s.getAll()); },
+  put(it) { return this.tx('items', 'readwrite', s => s.put(it)); },
+  del(id) { return this.tx('items', 'readwrite', s => s.delete(id)); },
+  getKV(k, def) { return this.tx('kv', 'readonly', s => s.get(k)).then(r => (r ? r.v : def)); },
+  setKV(k, v) { return this.tx('kv', 'readwrite', s => s.put({k, v})); },
+  wipe() {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(['items', 'kv'], 'readwrite');
+      t.objectStore('items').clear(); t.objectStore('kv').clear();
+      t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+    });
+  }
+};
+
+/* ====================================================================
+   STATE
+==================================================================== */
+const S = {
+  route: 'wardrobe', items: [], profile: null, pf: {...PROFILE_DEFAULT}, favs: [], hist: [],
+  drafts: [], seen: new Set(), busy: false, prog: '',
+  filter: {q: '', cat: 'all', colors: [], styles: []},
+  sp: {event: EVENTS[0], weather: WEATHERS[0], useTemp: false, temp: 28, note: ''},
+  sug: null, sugSeen: [], sugBusy: false, edit: null, seg: 'fav', installEvt: null
+};
+window.__S = S; // sirf testing ke liye
+
+/* ====================================================================
+   UI HELPERS
+==================================================================== */
+let toastTimer;
+function toast(msg, ms = 2800) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+function swatch(color, size) {
+  const hex = COLORS[color];
+  if (!hex) return `<span class="swatch" style="background:transparent;border-style:dashed${size ? `;width:${size}px;height:${size}px` : ''}"></span>`;
+  const bg = hex === 'multi' ? 'linear-gradient(135deg,#e53935,#fdd835,#43a047,#1e88e5)' : hex;
+  return `<span class="swatch" style="background:${bg}${size ? `;width:${size}px;height:${size}px` : ''}"></span>`;
+}
+function itemTitle(it) {
+  let t = titleCase(`${it.color || ''} ${it.sub_category || 'item'}`.trim());
+  if (it.color2 && it.color2 !== 'none') t += ' + ' + titleCase(it.color2);
+  return t;
+}
+function itemMeta(it) {
+  const chips = [CAT_LABEL[it.category] || it.category];
+  for (const f of ['fit', 'sleeve', 'neck', 'length', 'pattern', 'fabric', 'style']) {
+    const v = it[f]; if (v && v !== 'not sure' && v !== 'solid') chips.push(v);
+  }
+  if (it.warmth === 'light' || it.warmth === 'warm') chips.push(it.warmth + ' wear');
+  let sw = swatch(it.color);
+  if (it.color2 && it.color2 !== 'none') sw += swatch(it.color2, 10);
+  const notes = it.notes ? `<div class="small mute">📝 ${esc(it.notes)}</div>` : '';
+  return `<div class="ititle">${sw}${esc(itemTitle(it))}</div><div>${chips.map(c => `<span class="chip">${esc(c)}</span>`).join('')}</div>${notes}`;
+}
+const itemForAI = it => {
+  const o = {};
+  for (const k of ['id', 'category', 'sub_category', 'color', 'color2', 'pattern', 'fit', 'sleeve', 'neck', 'length', 'fabric', 'warmth', 'style', 'notes'])
+    if (it[k] && it[k] !== 'none') o[k] = it[k];
+  return o;
+};
+const banner = () => getKey() ? '' : `<div class="banner">🔑 Pehle <a href="#settings">Settings</a> mein Gemini API key daalo (⚙️ upar-right).</div>`;
+function openSheet(html) { const s = $('#sheet'); s.innerHTML = `<div class="panel">${html}</div>`; s.classList.remove('hidden'); document.body.classList.add('noscroll'); }
+function closeSheet() { $('#sheet').classList.add('hidden'); $('#sheet').innerHTML = ''; document.body.classList.remove('noscroll'); S.edit = null; }
+
+/* ====================================================================
+   IMAGE PROCESSING
+==================================================================== */
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { URL.revokeObjectURL(u); res(im); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('Photo read nahi ho payi')); };
+    im.src = u;
+  });
+}
+async function processImage(file) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, {imageOrientation: 'from-image'}); }
+  catch (e) { bmp = await loadImg(file); }
+  const w = bmp.width || bmp.naturalWidth, h = bmp.height || bmp.naturalHeight;
+  const enc = (max, q) => {
+    const s = Math.min(1, max / Math.max(w, h));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q);
+  };
+  const img = enc(1024, 0.85), thumb = enc(360, 0.8);
+  const c = document.createElement('canvas'); c.width = c.height = 16;
+  const x = c.getContext('2d'); x.drawImage(bmp, 0, 0, 16, 16);
+  const px = x.getImageData(0, 0, 16, 16).data, g = [];
+  for (let i = 0; i < px.length; i += 4) g.push(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]);
+  const avg = g.reduce((a, b) => a + b, 0) / g.length;
+  const hash = g.map(v => (v > avg ? '1' : '0')).join('');
+  const col = [0, 1, 2].map(k => { let t = 0; for (let i = k; i < px.length; i += 4) t += px[i]; return Math.round(t / (px.length / 4)); });
+  if (bmp.close) bmp.close();
+  return {img, thumb, hash, col};
+}
+function hamming(a, b) { let d = 0; for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) d++; return d; }
+function isSame(h1, c1, h2, c2) {
+  if (!h1 || !h2 || hamming(h1, h2) > 10) return false;
+  if (c1 && c2 && Math.hypot(c1[0] - c2[0], c1[1] - c2[1], c1[2] - c2[2]) > 30) return false;
+  return true;
+}
+function findDup(hash, col, items) { return items.find(it => isSame(hash, col, it.hash, it.col)) || null; }
+const b64 = dataUrl => dataUrl.split(',')[1];
+
+/* ====================================================================
+   GEMINI (dynamic flash model, timeout, retry, fallback)
+==================================================================== */
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+const getKey = () => (localStorage.getItem('gw_key') || '').trim();
+const getModels = () => { try { return JSON.parse(localStorage.getItem('gw_models') || 'null'); } catch (e) { return null; } };
+const setModels = m => { if (m) localStorage.setItem('gw_models', JSON.stringify(m)); else localStorage.removeItem('gw_models'); };
+
+async function fetchJSON(url, opts, timeout = 45000) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), timeout);
+  try {
+    const r = await fetch(url, {...opts, signal: c.signal});
+    const txt = await r.text();
+    let data = null; try { data = JSON.parse(txt); } catch (e) { /* not json */ }
+    if (!r.ok) {
+      const err = new Error((data && data.error && data.error.message) || txt.slice(0, 200) || 'HTTP ' + r.status);
+      err.status = r.status; err.raw = txt; throw err;
+    }
+    return data;
+  } catch (e) {
+    if (e.name === 'AbortError') { const er = new Error('timeout'); er.timeout = true; throw er; }
+    throw e;
+  } finally { clearTimeout(t); }
+}
+
+function friendlyError(e) {
+  const msg = String(e.raw || e.message || e), low = msg.toLowerCase();
+  if (low.includes('api_key_invalid') || low.includes('api key not valid') || e.status === 403) return 'API key galat hai ya kaam nahi kar rahi. Nayi key banake Settings mein daalo.';
+  if (e.timeout) return 'Gemini ne 45 sec mein jawab nahi diya (time-out). Internet check karke dobara try karo.';
+  if (e.status === 429 || low.includes('resource_exhausted')) return 'Gemini ki free limit khatam hai (429). Thodi der baad dobara try karo.';
+  if (e.name === 'TypeError') return 'Internet ya network ki dikkat. Connection check karke dobara try karo.';
+  return String(e.message || e).slice(0, 200);
+}
+async function listFlashModels() {
+  const key = getKey();
+  if (!key) throw new Error('Pehle Settings mein Gemini API key daalo.');
+  try { return await listFlashModelsRaw(key); } catch (e) { throw new Error(friendlyError(e)); }
+}
+async function listFlashModelsRaw(key) {
+  const banned = ['image', 'tts', 'live', 'audio', 'thinking', 'exp', '8b', 'native', 'robotics', 'computer', 'embedding'];
+  let url = `${API}/models?pageSize=200&key=${encodeURIComponent(key)}`, all = [];
+  for (let i = 0; i < 6; i++) {
+    const d = await fetchJSON(url);
+    all.push(...(d.models || []));
+    if (!d.nextPageToken) break;
+    url = `${API}/models?pageSize=200&pageToken=${encodeURIComponent(d.nextPageToken)}&key=${encodeURIComponent(key)}`;
+  }
+  const groups = {stable: [], preview: [], lite_stable: [], lite_preview: []}, aliases = [];
+  for (const m of all) {
+    const name = (m.name || '').replace('models/', ''), low = name.toLowerCase();
+    if (!low.includes('flash') || banned.some(b => low.includes(b))) continue;
+    const acts = m.supportedGenerationMethods || [];
+    if (acts.length && !acts.includes('generateContent')) continue;
+    const mt = low.match(/gemini-(\d+(?:\.\d+)?)-flash/);
+    if (!mt) { aliases.push(name); continue; }
+    const key2 = (low.includes('lite') ? 'lite_' : '') + (low.includes('preview') ? 'preview' : 'stable');
+    groups[key2].push([parseFloat(mt[1]), name]);
+  }
+  let res = [];
+  for (const k of ['stable', 'preview', 'lite_stable', 'lite_preview']) res.push(...groups[k].sort((a, b) => b[0] - a[0]).map(x => x[1]));
+  res = res.concat(aliases);
+  if (!res.length) throw new Error("Koi 'flash' model nahi mila. API key check karo.");
+  return res;
+}
+
+function retryDelay(msg) {
+  const low = msg.toLowerCase();
+  if (low.includes('perday') || low.includes('per day')) return null;
+  const m = msg.match(/retry in ([\d.]+)s/i) || msg.match(/retryDelay\W+(\d+)/);
+  return m ? parseFloat(m[1]) : 8;
+}
+
+async function callGemini(parts, {json = true, temperature = 0.4} = {}) {
+  const key = getKey();
+  if (!key) throw new Error('Pehle Settings mein Gemini API key daalo.');
+  let models = getModels();
+  if (!models || !models.length) { models = await listFlashModels(); setModels(models); }
+  const log = [], deadline = Date.now() + 150000;
+  for (const model of models.slice(0, 6)) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (Date.now() > deadline) break;
+      try {
+        const body = {contents: [{role: 'user', parts}], generationConfig: {temperature}};
+        if (json) body.generationConfig.responseMimeType = 'application/json';
+        const d = await fetchJSON(`${API}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,
+          {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        const cand = d && d.candidates && d.candidates[0];
+        const text = cand && cand.content && cand.content.parts ? cand.content.parts.filter(p => p.text && !p.thought).map(p => p.text).join('') : '';
+        if (text) {
+          const order = [model, ...models.filter(m => m !== model)]; setModels(order); localStorage.setItem('gw_last_model', model);
+          return text;
+        }
+        log.push(`${model}: khaali jawab aaya`); break;
+      } catch (e) {
+        const msg = String(e.raw || e.message || e), low = msg.toLowerCase();
+        if (e.timeout) { log.push(`${model}: 45 sec mein jawab nahi aaya (time-out)`); break; }
+        if (low.includes('api_key_invalid') || low.includes('api key not valid') || e.status === 403)
+          throw new Error('API key galat hai ya kaam nahi kar rahi. Nayi key banake Settings mein daalo.');
+        if (e.status === 429 || low.includes('resource_exhausted')) {
+          const dl = retryDelay(msg);
+          if (attempt === 0 && dl !== null && dl <= 30) { await sleep((dl + 1) * 1000); continue; }
+          log.push(`${model}: limit khatam (429)`); break;
+        }
+        if (e.name === 'TypeError') throw new Error('Internet ya network ki dikkat. Connection check karke dobara try karo.');
+        log.push(`${model}: ${String(e.message).slice(0, 140)}`); break;
+      }
+    }
+  }
+  setModels(null);
+  throw new Error('Koi bhi model nahi chala:\n- ' + (log.length ? log.join('\n- ') : 'time khatam'));
+}
+
+function parseJSON(text) {
+  const c = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  try { return JSON.parse(c); } catch (e) { /* try slice */ }
+  const a = c.indexOf('{'), z = c.lastIndexOf('}');
+  if (a !== -1 && z > a) return JSON.parse(c.slice(a, z + 1));
+  throw new Error('AI ka response JSON mein parse nahi ho paya.');
+}
+const imgPart = dataUrl => ({inline_data: {mime_type: 'image/jpeg', data: b64(dataUrl)}});
+
+async function analyzeImage(dataUrl) {
+  const allowed = {
+    category: CATEGORIES, 'sub_category (depends on category)': SUBS, 'color and color2 (color2 can be none)': COLOR2, pattern: PATTERNS,
+    'fit (depends on category; only for top/bottom/outerwear)': FITS, 'sleeve (top/outerwear/fullbody only)': SLEEVES,
+    'neck (top only)': NECKS, 'length (bottom/fullbody only)': LENGTHS, fabric: FABRICS, warmth: WARMTH, style: STYLES
+  };
+  const prompt = 'You are an expert fashion cataloguer. Look at the clothing item in the photo and describe it precisely. Reply with ONLY one JSON object with the keys: category, sub_category, color, color2, pattern, fit, sleeve, neck, length, fabric, warmth, style.\n' +
+    'Use ONLY values from the allowed lists below, written exactly as given. Use "" for any field that does not apply (e.g. sleeve for jeans).\n' +
+    'COLOUR: pick the closest exact SHADE (e.g. tell apart light green / olive green / dark green / bottle green, and sky blue / navy blue / royal blue / denim shades). color2 is a clearly visible secondary colour, else "none".\n' +
+    'Look carefully: t-shirt vs polo t-shirt (collar + buttons) vs casual shirt; half sleeve vs full sleeve; jeans skinny vs straight vs baggy.\n' +
+    'ALLOWED VALUES: ' + JSON.stringify(allowed);
+  return parseJSON(await callGemini([imgPart(dataUrl), {text: prompt}]));
+}
+async function analyzeSkin(dataUrl) {
+  const prompt = "This is the user's own selfie. It is used ONLY to help recommend clothing colours. Estimate the overall skin tone and undertone (do not identify the person, do not comment on anything else). Lighting can distort colours, so be conservative. " +
+    `Reply with ONLY JSON: {"skin_tone": one of ${JSON.stringify(Object.keys(SKIN_TONES))}, "undertone": one of ${JSON.stringify(UNDERTONES.slice(0, 3))}}`;
+  return parseJSON(await callGemini([imgPart(dataUrl), {text: prompt}]));
+}
+function profileText(p) {
+  if (!p) return 'Not provided (give a generally good outfit).';
+  const a = [`Gender: ${p.gender}`, `Height: ${p.height} cm`, `Body build: ${p.build}`, `Skin tone: ${p.skin}`, `Undertone: ${p.undertone}`, `Fit preference: ${p.fit_pref}`];
+  if (p.fav_colors) a.push(`Favourite colours: ${p.fav_colors}`);
+  if (p.avoid_colors) a.push(`Colours to avoid: ${p.avoid_colors}`);
+  return a.join('; ');
+}
+function recentWorn(days = 7) {
+  const cut = Date.now() - days * 86400000, ids = new Set();
+  for (const h of S.hist) { const t = Date.parse((h.date || '').replace(' ', 'T')); if (t >= cut) (h.item_ids || []).forEach(i => ids.add(i)); }
+  return [...ids];
+}
+async function askOutfit(items, p, seen) {
+  const temp = p.useTemp ? ` (about ${p.temp}°C)` : '';
+  const prompt = `You are a friendly, expert Indian personal stylist.
+USER PROFILE: ${profileText(S.profile)}
+EVENT: ${p.event}
+WEATHER: ${p.weather}${temp}
+EXTRA NOTE FROM USER: ${p.note || 'none'}
+WARDROBE (JSON list; use ONLY these ids): ${JSON.stringify(items.map(itemForAI))}
+WORN IN LAST 7 DAYS (avoid if possible): ${JSON.stringify(recentWorn())}
+ALREADY SUGGESTED COMBINATIONS (do NOT repeat these, give a clearly different outfit): ${JSON.stringify(seen)}
+
+RULES:
+1. Build one outfit: either ONE 'fullbody' item, or exactly ONE 'top' + ONE 'bottom'. Add ONE 'shoes' if any exist. Add ONE 'outerwear' only if weather/event needs it (cold, rainy, formal blazer, etc). Add up to 3 'accessory' items only if they genuinely help.
+2. Weather: Hot/Humid -> light breathable fabrics (cotton, linen), light colours, half/sleeveless ok, no heavy layers. Cold -> warm fabrics + outerwear. Rainy -> avoid leather/suede/white or light long bottoms, prefer dark quick-dry items and sensible shoes.
+3. Formality must match the event (formal shirt with formal trousers/shoes for office/interview; no joggers with formal shirts). Footwear must match the formality.
+4. Colours: use colour harmony (neutral base + at most one accent; avoid clashing). Use the user's skin tone and undertone: warm undertone suits earthy shades (olive, mustard, rust, cream, maroon); cool undertone suits blues, purples, greys, crisp white; fair skin suits softer or rich deep shades; deep/dark skin looks great in bright, jewel or high-contrast shades. Respect favourite/avoid colours.
+5. Fit and proportion: consider height and build (e.g. avoid oversized, shapeless items overwhelming a short person; balance a loose top with a slimmer bottom and vice versa). Respect the fit preference.
+
+Reply with ONLY a JSON object:
+{"fullbody_id": null, "top_id": "<id or null>", "bottom_id": "<id or null>", "shoes_id": "<id or null>", "outerwear_id": "<id or null>", "accessory_ids": [], "reason": "3-5 lines in Hinglish (Hindi+English mix) explaining why this outfit suits the event, weather, the user's skin tone, height/build, and why the colours/fits match", "tip": "one short Hinglish styling tip"}`;
+  return parseJSON(await callGemini([{text: prompt}], {temperature: 0.7}));
+}
+function validateOutfit(r, items) {
+  const by = new Map(items.map(i => [i.id, i]));
+  const pick = (k, cat) => { const it = by.get(String(r[k])); return it && it.category === cat ? it : null; };
+  const full = pick('fullbody_id', 'fullbody'), top = pick('top_id', 'top'), bottom = pick('bottom_id', 'bottom');
+  const shoes = pick('shoes_id', 'shoes'), outer = pick('outerwear_id', 'outerwear');
+  const acc = (Array.isArray(r.accessory_ids) ? r.accessory_ids : []).map(a => by.get(String(a))).filter(i => i && i.category === 'accessory').slice(0, 3);
+  let main;
+  if (full) main = [full]; else if (top && bottom) main = [top, bottom]; else return null;
+  return [...main, ...(outer ? [outer] : []), ...(shoes ? [shoes] : []), ...acc].map(i => i.id);
+}
+
+/* ====================================================================
+   ITEM FORM (Add aur Edit dono ke liye)
+==================================================================== */
+const blankForm = () => ({category: 'top', sub: 't-shirt', sub_custom: '', color: 'black', color2: 'none', pattern: 'solid', fit: 'regular fit', sleeve: 'half sleeve', neck: 'round neck', length: 'full length', fabric: 'not sure', warmth: 'medium', style: 'casual', notes: ''});
+function fixForm(f) {
+  f.category = norm(f.category, CATEGORIES, 'top');
+  if (!SUBS[f.category].includes(f.sub)) f.sub = SUBS[f.category][0];
+  for (const k of DEP) if (applies(k, f.category)) { const o = fieldOptions(k, f.category); if (!o.includes(f[k])) f[k] = defaultFor(k, o); }
+}
+function fromItem(it) {
+  const f = blankForm();
+  f.category = norm(it.category, CATEGORIES, 'top');
+  [f.sub, f.sub_custom] = splitSub(f.category, it.sub_category);
+  f.color = norm(it.color, COLOR_NAMES, 'black'); f.color2 = norm(it.color2, COLOR2, 'none');
+  f.pattern = norm(it.pattern, PATTERNS, 'solid'); f.fabric = norm(it.fabric, FABRICS, 'not sure');
+  f.warmth = norm(it.warmth, WARMTH, 'medium'); f.style = norm(it.style, STYLES, 'casual'); f.notes = it.notes || '';
+  for (const k of DEP) if (applies(k, f.category)) { const o = fieldOptions(k, f.category); f[k] = norm(it[k], o, defaultFor(k, o)); }
+  return f;
+}
+function toItem(f) {
+  const cat = f.category;
+  const sub = f.sub === 'other' ? ((f.sub_custom || '').trim().toLowerCase() || 'other') : f.sub;
+  const it = {category: cat, sub_category: sub, color: f.color, color2: f.color2, pattern: f.pattern, fabric: f.fabric, warmth: f.warmth, style: f.style, notes: (f.notes || '').trim()};
+  for (const k of DEP) it[k] = applies(k, cat) ? f[k] : '';
+  return it;
+}
+function applyAI(f, r) {
+  const cat = norm(r.category, CATEGORIES, 'top'); f.category = cat;
+  [f.sub, f.sub_custom] = splitSub(cat, r.sub_category);
+  f.color = norm(r.color, COLOR_NAMES, 'black'); f.color2 = norm(r.color2, COLOR2, 'none');
+  f.pattern = norm(r.pattern, PATTERNS, 'solid'); f.fabric = norm(r.fabric, FABRICS, 'not sure');
+  f.warmth = norm(r.warmth, WARMTH, 'medium'); f.style = norm(r.style, STYLES, 'casual');
+  for (const k of DEP) if (applies(k, cat)) { const o = fieldOptions(k, cat); f[k] = norm(r[k], o, defaultFor(k, o)); }
+}
+function selHTML(label, field, opts, val, scope, fmt, withSwatch) {
+  const o = opts.map(x => `<option value="${esc(x)}"${x === val ? ' selected' : ''}>${esc(fmt ? fmt(x) : x)}</option>`).join('');
+  const sel = `<select data-scope="${esc(scope)}" data-f="${field}">${o}</select>`;
+  return `<div class="field"><label>${label}</label>${withSwatch ? `<div class="selrow">${swatch(val)}${sel}</div>` : sel}</div>`;
+}
+function formHTML(f, scope) {
+  const cat = f.category;
+  let h = selHTML('Category', 'category', CATEGORIES, cat, scope, c => CAT_LABEL[c]);
+  h += selHTML('Type (shirt / polo / jeans ...)', 'sub', SUBS[cat], f.sub, scope);
+  if (f.sub === 'other') h += `<div class="field"><label>Apna type likho</label><input type="text" data-scope="${esc(scope)}" data-f="sub_custom" value="${esc(f.sub_custom)}" placeholder="jaise: bandhgala"></div>`;
+  h += selHTML('Main color (shade)', 'color', COLOR_NAMES, f.color, scope, null, true);
+  h += selHTML('Second color', 'color2', COLOR2, f.color2, scope, null, true);
+  h += selHTML('Pattern', 'pattern', PATTERNS, f.pattern, scope);
+  for (const k of DEP) if (applies(k, cat)) h += selHTML(FIELD_LABEL[k], k, fieldOptions(k, cat), f[k], scope);
+  h += selHTML('Fabric', 'fabric', FABRICS, f.fabric, scope);
+  h += selHTML('Warmth', 'warmth', WARMTH, f.warmth, scope);
+  h += selHTML('Style', 'style', STYLES, f.style, scope);
+  h += `<div class="field full"><label>Notes (brand, kahan se liya... optional)</label><input type="text" data-scope="${esc(scope)}" data-f="notes" value="${esc(f.notes)}"></div>`;
+  return `<div class="form" data-form="${esc(scope)}">${h}</div>`;
+}
+function getForm(scope) {
+  if (scope.startsWith('d:')) { const d = S.drafts.find(x => x.id === scope.slice(2)); return d && d.f; }
+  if (scope === 'e') return S.edit && S.edit.f;
+  return null;
+}
+function refreshForm(scope) {
+  const f = getForm(scope), el = document.querySelector(`[data-form="${CSS.escape(scope)}"]`);
+  if (f && el) el.outerHTML = formHTML(f, scope);
+}
+
+/* ====================================================================
+   VIEWS
+==================================================================== */
+const VIEWS = {};
+
+/* ---------- ADD ---------- */
+function draftHTML(d) {
+  const st = d.status === 'done' ? '<div class="note ok">AI ne details bhar di hain. Galat lage to neeche edit karo 👇</div>'
+    : d.status === 'busy' ? '<div class="note"><span class="spin"></span>AI kapda dekh raha hai...</div>'
+    : d.status === 'error' ? `<div class="note err reason">Analyze fail: ${esc(d.msg)}</div>`
+    : '<div class="note mute">Abhi AI analyze nahi hua. Button dabao ya khud bhar do.</div>';
+  const dup = d.dup ? `<div class="note warn">⚠️ ${esc(d.dup)}<label class="chk"><input type="checkbox" data-chk="allowdup" data-id="${d.id}"${d.allowDup ? ' checked' : ''}> Duplicate hai, phir bhi save karo</label></div>` : '';
+  return `<section class="card" id="draft-${d.id}"><img class="dimg" src="${d.img}" alt="">${st}${dup}${formHTML(d.f, 'd:' + d.id)}
+  <div class="row three"><button class="btn" data-act="analyze1" data-id="${d.id}"${S.busy ? ' disabled' : ''}>🤖 Analyze</button><button class="btn primary" data-act="save1" data-id="${d.id}">💾 Save</button><button class="btn" data-act="rm" data-id="${d.id}">❌ Hatao</button></div></section>`;
+}
+function draftBarHTML() {
+  if (!S.drafts.length) return '<div class="empty"><div class="big">📸</div>Photos chunoge to yahan har kapde ka form aayega.</div>';
+  return `<div class="row three"><button class="btn primary" data-act="analyzeAll"${S.busy ? ' disabled' : ''}>🤖 AI Analyze All</button><button class="btn" data-act="saveAll">💾 Save All</button><button class="btn" data-act="clearDrafts">🧹 Sab hatao</button></div><div class="small mute">${esc(S.prog)}</div>`;
+}
+VIEWS.add = () => `${banner()}<h2>Naye kapde add karo</h2>
+  <div class="row two"><button class="btn big" data-act="pickCamera">📷 Camera se photo</button><button class="btn big" data-act="pickGallery">🖼️ Gallery se (kai photos)</button></div>
+  <p class="small mute">Ek saath kai photos chun sakte ho. Phir "AI Analyze All" dabao (free limit se bachne ke liye photos ke beech thoda gap rehta hai).</p>
+  <div id="draftBar">${draftBarHTML()}</div><div id="drafts">${S.drafts.map(draftHTML).join('')}</div>`;
+function refreshDraft(id) {
+  const d = S.drafts.find(x => x.id === id), el = $('#draft-' + id);
+  if (d && el) el.outerHTML = draftHTML(d);
+}
+function refreshBar() { const b = $('#draftBar'); if (b) b.innerHTML = draftBarHTML(); }
+
+async function addFiles(files) {
+  if (!files.length) return;
+  toast('Photos process ho rahi hain...');
+  let added = 0;
+  for (const file of files) {
+    const sig = `${file.name}-${file.size}-${file.lastModified}`;
+    if (S.seen.has(sig)) continue;
+    S.seen.add(sig);
+    try {
+      const p = await processImage(file);
+      let dup = '';
+      const hit = findDup(p.hash, p.col, S.items);
+      if (hit) dup = 'Ye photo wardrobe mein pehle se lagti hai: ' + itemTitle(hit);
+      else if (S.drafts.some(d => isSame(p.hash, p.col, d.hash, d.col))) dup = 'Ye photo pehle chuni hui photo jaisi hai.';
+      S.drafts.push({id: uid(), ...p, status: 'new', msg: '', dup, allowDup: false, f: blankForm()});
+      added++;
+    } catch (e) { toast(`'${file.name}' read nahi ho payi`); }
+  }
+  if (S.route === 'add') render(); else if (added) location.hash = '#add';
+}
+async function runAnalyze(ids) {
+  if (S.busy) return toast('Ek analysis pehle se chal rahi hai.');
+  if (!getKey()) { toast('Pehle Settings mein API key daalo.'); location.hash = '#settings'; return; }
+  const list = ids.map(id => S.drafts.find(d => d.id === id)).filter(Boolean);
+  if (!list.length) return;
+  S.busy = true; refreshBar();
+  document.querySelectorAll('[data-act="analyze1"]').forEach(b => b.disabled = true);
+  for (let i = 0; i < list.length; i++) {
+    const d = list[i];
+    S.prog = `Analyze ho raha hai: ${i + 1}/${list.length} (limit se bachne ke liye thoda wait ho sakta hai)`; refreshBar();
+    d.status = 'busy'; refreshDraft(d.id);
+    if (i > 0) await sleep(4000);
+    try { applyAI(d.f, await analyzeImage(d.img)); d.status = 'done'; d.msg = ''; }
+    catch (e) { d.status = 'error'; d.msg = e.message; }
+    refreshDraft(d.id);
+  }
+  S.busy = false; S.prog = '';
+  if (S.route === 'add') render();
+}
+async function saveDrafts(ids) {
+  let saved = 0, skipped = 0;
+  for (const id of ids) {
+    const d = S.drafts.find(x => x.id === id); if (!d) continue;
+    if (findDup(d.hash, d.col, S.items) && !d.allowDup) { skipped++; continue; }
+    const it = {...toItem(d.f), id: uid(), img: d.img, thumb: d.thumb, hash: d.hash, col: d.col, added: now().slice(0, 10)};
+    try { await DB.put(it); } catch (e) { toast('Save fail (phone ki storage bhar gayi?): ' + e.message, 5000); break; }
+    S.items.push(it); S.drafts = S.drafts.filter(x => x.id !== id); saved++;
+  }
+  if (!S.drafts.length) S.seen.clear();
+  S.sug = null;
+  let msg = saved ? `✅ ${saved} kapde save ho gaye!` : '';
+  if (skipped) msg += ` ⚠️ ${skipped} duplicate skip hue (tick karo agar chahiye).`;
+  toast(msg || 'Kuch save nahi hua.', 4000);
+  render();
+}
+
+/* ---------- WARDROBE ---------- */
+function filteredItems() {
+  const F = S.filter, q = F.q.toLowerCase().trim();
+  return S.items.slice().reverse().filter(it => {
+    if (F.cat !== 'all' && it.category !== F.cat) return false;
+    if (F.colors.length && !F.colors.includes(it.color)) return false;
+    if (F.styles.length && !F.styles.includes(it.style)) return false;
+    if (q) {
+      const blob = ['category', 'sub_category', 'color', 'color2', 'pattern', 'fit', 'sleeve', 'neck', 'length', 'fabric', 'warmth', 'style', 'notes'].map(k => it[k] || '').join(' ').toLowerCase();
+      return q.split(/\s+/).every(w => blob.includes(w));
+    }
+    return true;
+  });
+}
+function gridHTML() {
+  const shown = filteredItems();
+  if (!shown.length) return '<div class="empty">Is filter mein koi kapda nahi mila.</div>';
+  return `<div class="grid">${shown.map(it => `<article class="icard" data-act="openItem" data-id="${it.id}"><img loading="lazy" src="${it.thumb || it.img}" alt=""><div class="meta">${itemMeta(it)}</div></article>`).join('')}</div>`;
+}
+VIEWS.wardrobe = () => {
+  if (!S.items.length) return `${banner()}<div class="empty"><div class="big">🧺</div><h2>Wardrobe khaali hai</h2><p>Apne kapdon ki photos add karo, AI baaki sab bhar dega.</p><a class="btn primary" style="display:inline-block;text-decoration:none;line-height:24px" href="#add">➕ Pehla kapda add karo</a></div>`;
+  const F = S.filter;
+  const colors = [...new Set(S.items.map(i => i.color).filter(Boolean))].sort();
+  const cnt = c => c === 'all' ? S.items.length : S.items.filter(i => i.category === c).length;
+  const pills = ['all', ...CATEGORIES].filter(c => c === 'all' || cnt(c)).map(c => `<button class="pill${F.cat === c ? ' on' : ''}" data-act="setCat" data-v="${c}">${c === 'all' ? 'Sab' : CAT_LABEL[c]}<small>${cnt(c)}</small></button>`).join('');
+  const colChips = colors.map(c => `<button class="pill${F.colors.includes(c) ? ' on' : ''}" data-act="togColor" data-v="${esc(c)}">${swatch(c)}${esc(c)}</button>`).join('');
+  const styChips = STYLES.map(c => `<button class="pill${F.styles.includes(c) ? ' on' : ''}" data-act="togStyle" data-v="${esc(c)}">${esc(c)}</button>`).join('');
+  return `${banner()}<input type="text" id="q" placeholder="🔍 Search (jaise olive polo)" value="${esc(F.q)}" style="margin-bottom:10px">
+  <div class="pills">${pills}</div>
+  <details class="more"${F.colors.length || F.styles.length ? ' open' : ''}><summary>Filters (color / style)</summary><div class="lbl">Color</div><div class="pills" style="flex-wrap:wrap">${colChips}</div><div class="lbl">Style</div><div class="pills" style="flex-wrap:wrap">${styChips}</div></details>
+  <div id="grid">${gridHTML()}</div>`;
+};
+function itemSheet(id, mode) {
+  const it = S.items.find(x => x.id === id); if (!it) return;
+  if (mode === 'edit') {
+    S.edit = {id, f: fromItem(it)};
+    openSheet(`<h2>✏️ Kapda edit karo</h2><img class="hero" src="${it.img}" alt="">${formHTML(S.edit.f, 'e')}
+      <div class="row"><button class="btn primary" data-act="saveEdit">💾 Changes save</button><button class="btn" data-act="viewItem" data-id="${id}">Cancel</button></div>`);
+  } else {
+    S.edit = null;
+    openSheet(`<img class="hero" src="${it.img}" alt="">${itemMeta(it)}<div class="small mute" style="margin-top:6px">Add kiya: ${esc(it.added || '')}</div>
+      <div class="row"><button class="btn" data-act="editItem" data-id="${id}">✏️ Edit</button><button class="btn danger" data-act="delItem" data-id="${id}">🗑️ Delete</button><button class="btn" data-act="closeSheet">Band karo</button></div>`);
+  }
+}
+
+/* ---------- SUGGEST ---------- */
+function outfitHTML(ids) {
+  const by = new Map(S.items.map(i => [i.id, i]));
+  const items = ids.map(i => by.get(i)).filter(Boolean);
+  return `<div class="grid">${items.map(it => `<article class="icard" data-act="openItem" data-id="${it.id}"><img src="${it.thumb || it.img}" alt=""><div class="meta"><div class="lbl">${esc(CAT_LABEL[it.category] || '')}</div>${itemMeta(it)}</div></article>`).join('')}</div>`;
+}
+function sugResultHTML() {
+  if (S.sugBusy) return '<div class="card"><span class="spin"></span>Stylist soch raha hai...</div>';
+  const s = S.sug; if (!s) return '';
+  return `<h3>${esc(s.event)} + ${esc(s.weather)} ke liye outfit</h3>${outfitHTML(s.item_ids)}
+  <div class="note reason">💬 ${esc(s.reason)}</div>${s.tip ? `<div class="note ok">💡 Tip: ${esc(s.tip)}</div>` : ''}
+  <div class="row"><button class="btn" data-act="saveFav">❤️ Outfit save karo</button><button class="btn" data-act="worn">👕 Aaj ye pehna</button></div>
+  <div class="row"><button class="btn primary" data-act="again">🔁 Doosra outfit dikhao</button></div>`;
+}
+VIEWS.suggest = () => {
+  const P = S.sp, opt = (list, v) => list.map(x => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
+  return `${banner()}<h2>Outfit suggestion lo</h2>
+  ${S.profile ? '' : '<div class="note">💡 <a href="#profile">Profile</a> mein height, skin tone wagairah bharoge to suggestions aapke liye personalized honge.</div>'}
+  <div class="form"><div class="field"><label>Event</label><select data-sp="event">${opt(EVENTS, P.event)}</select></div>
+  <div class="field"><label>Weather</label><select data-sp="weather">${opt(WEATHERS, P.weather)}</select></div></div>
+  <label class="small" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" data-sp="useTemp"${P.useTemp ? ' checked' : ''}> Exact temperature batana hai?</label>
+  <div id="tempBox" class="${P.useTemp ? '' : 'hide'}"><div class="lbl">Temperature: <b id="tempVal">${P.temp}</b> °C</div><input type="range" min="-5" max="48" value="${P.temp}" data-sp="temp"></div>
+  <div class="field" style="margin:8px 0 12px"><label>Koi extra baat? (mood, kahan jana hai, kya pehenna hai/nahi...) - optional</label><input type="text" data-sp="note" value="${esc(P.note)}"></div>
+  <div class="row"><button class="btn primary big" data-act="suggest"${S.sugBusy ? ' disabled' : ''}>✨ Suggest Outfit</button></div>
+  <div id="sugResult">${sugResultHTML()}</div>`;
+};
+async function generate() {
+  const cats = new Set(S.items.map(i => i.category));
+  if (!(cats.has('fullbody') || (cats.has('top') && cats.has('bottom')))) { toast('Kam se kam 1 top + 1 bottom (ya 1 full outfit) wardrobe mein hona chahiye.', 4000); return; }
+  if (!getKey()) { toast('Pehle Settings mein API key daalo.'); location.hash = '#settings'; return; }
+  S.sugBusy = true; const box = $('#sugResult'); if (box) box.innerHTML = sugResultHTML();
+  const params = {...S.sp};
+  try {
+    const r = await askOutfit(S.items, params, S.sugSeen);
+    const ids = validateOutfit(r, S.items);
+    if (!ids) toast('AI sahi outfit nahi bana paya. Dobara try karo.', 4000);
+    else S.sug = {item_ids: ids, reason: r.reason || '', tip: r.tip || '', event: params.event, weather: params.weather};
+  } catch (e) { toast(e.message, 6000); const b = $('#sugResult'); if (b) b.innerHTML = `<div class="note err reason">${esc(e.message)}</div>`; }
+  S.sugBusy = false;
+  if (S.route === 'suggest') { const b = $('#sugResult'); if (b && !b.querySelector('.err')) b.innerHTML = sugResultHTML(); const btn = document.querySelector('[data-act="suggest"]'); if (btn) btn.disabled = false; }
+}
+
+/* ---------- OUTFITS ---------- */
+function thumbsHTML(ids) {
+  const by = new Map(S.items.map(i => [i.id, i]));
+  const items = ids.map(i => by.get(i)).filter(Boolean);
+  if (!items.length) return '<div class="small mute">(Ye kapde ab wardrobe mein nahi hain)</div>';
+  return `<div class="thumbs">${items.map(it => `<figure><img src="${it.thumb || it.img}" alt=""><figcaption>${esc(itemTitle(it))}</figcaption></figure>`).join('')}</div>`;
+}
+VIEWS.outfits = () => {
+  const tabs = `<div class="seg"><button class="${S.seg === 'fav' ? 'on' : ''}" data-act="seg" data-v="fav">❤️ Saved outfits</button><button class="${S.seg === 'hist' ? 'on' : ''}" data-act="seg" data-v="hist">🕘 History</button></div>`;
+  if (S.seg === 'fav') {
+    if (!S.favs.length) return tabs + '<div class="empty"><div class="big">❤️</div>Abhi koi saved outfit nahi.<br>Suggest tab mein "Outfit save karo" dabao.</div>';
+    return tabs + S.favs.slice().reverse().map(f => `<section class="card"><b>${esc(f.event)} • ${esc(f.weather)}</b> <span class="small mute">${esc(f.saved)}</span>${thumbsHTML(f.item_ids)}
+      ${f.reason ? `<details><summary class="small mute">Kyun accha hai?</summary><p class="reason small">${esc(f.reason)}</p></details>` : ''}
+      <button class="btn danger" data-act="delFav" data-id="${f.id}">🗑️ Hatao</button></section>`).join('');
+  }
+  if (!S.hist.length) return tabs + '<div class="empty"><div class="big">🕘</div>History khaali hai.<br>Suggest tab mein "Aaj ye pehna" dabao.</div>';
+  return tabs + S.hist.slice(-30).reverse().map(h => `<section class="card"><b>${esc(h.date)}</b> <span class="small mute">${esc(h.event)} • ${esc(h.weather)}</span>${thumbsHTML(h.item_ids)}
+    <button class="btn danger" data-act="delHist" data-id="${h.id}">🗑️ Hatao</button></section>`).join('');
+};
+
+/* ---------- PROFILE ---------- */
+VIEWS.profile = () => {
+  const p = S.pf, opt = (list, v) => list.map(x => `<option${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
+  const inches = Math.round((+p.height || 0) / 2.54);
+  return `${banner()}<h2>Aapki profile</h2>
+  <p class="small mute">Gender, height aur body build aap batate ho. Skin tone swatch dekh ke chuno, ya selfie se AI se andaza lagwao. Isse suggestions personalized hote hain.</p>
+  <div class="card"><b>📸 Skin tone nahi pata?</b><p class="small mute">Sirf skin tone aur undertone ka andaza lagega. Selfie save NAHI hoti. Natural roshni mein, filter ke bina lo. Result aap badal sakte ho.</p>
+  <button class="btn" data-act="pickSelfie">🤳 Selfie se detect karo</button><div id="selfieMsg" class="small mute" style="margin-top:6px"></div></div>
+  <div class="form">
+  <div class="field"><label>Naam (optional)</label><input type="text" data-pf="name" value="${esc(p.name)}"></div>
+  <div class="field"><label>Gender</label><select data-pf="gender">${opt(GENDERS, p.gender)}</select></div>
+  <div class="field"><label>Height (cm) <span id="inch" class="mute">≈ ${Math.floor(inches / 12)} ft ${inches % 12} in</span></label><input type="number" inputmode="numeric" min="100" max="230" data-pf="height" value="${esc(p.height)}"></div>
+  <div class="field"><label>Body build</label><select data-pf="build">${opt(BUILDS, p.build)}</select></div>
+  <div class="field"><label>Undertone</label><select data-pf="undertone">${opt(UNDERTONES, p.undertone)}</select></div>
+  <div class="field"><label>Fit preference</label><select data-pf="fit_pref">${opt(FIT_PREFS, p.fit_pref)}</select></div></div>
+  <div class="lbl" style="margin:6px 0">Skin tone (jo sabse nazdeek lage)</div>
+  <div class="skins">${Object.entries(SKIN_TONES).map(([n, hx]) => `<button class="skin${p.skin === n ? ' on' : ''}" data-act="setSkin" data-v="${esc(n)}"><i style="background:${hx}"></i>${esc(n)}</button>`).join('')}</div>
+  <div class="form" style="margin-top:14px">
+  <div class="field"><label>Favourite colours (optional)</label><input type="text" data-pf="fav_colors" placeholder="jaise: navy, olive, white" value="${esc(p.fav_colors)}"></div>
+  <div class="field"><label>Jo colours nahi pasand (optional)</label><input type="text" data-pf="avoid_colors" placeholder="jaise: pink, yellow" value="${esc(p.avoid_colors)}"></div></div>
+  <div class="row"><button class="btn primary big" data-act="saveProfile">💾 Profile save karo</button></div>`;
+};
+
+/* ---------- SETTINGS ---------- */
+VIEWS.settings = () => {
+  const key = getKey(), last = localStorage.getItem('gw_last_model');
+  return `<h2>⚙️ Settings</h2>
+  <div class="card"><b>🔑 Gemini API key</b><p class="small mute">Free key: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--acc)">aistudio.google.com/apikey</a>. Key sirf aapke phone mein save hoti hai.</p>
+  <input type="password" id="keyInput" placeholder="API key yahan paste karo" value="${esc(key)}" autocomplete="off">
+  <div class="row"><button class="btn primary" data-act="saveKey">💾 Save</button><button class="btn" data-act="testKey">🧪 Connection test</button></div>
+  <div class="row"><button class="btn" data-act="refreshModels">🔄 Model list refresh</button><button class="btn danger" data-act="forgetKey">Key hatao</button></div>
+  <div id="keyMsg" class="small reason mute">${last ? 'Last working model: ' + esc(last) : ''}</div></div>
+  <div class="card"><b>💾 Backup & Restore</b><p class="small mute">Data sirf is phone ke browser mein hai. Browser data clear karne ya phone badalne se pehle backup lo.</p>
+  <div class="row"><button class="btn primary" data-act="export">⬇️ Backup download</button><button class="btn" data-act="importPick">♻️ Restore karo</button></div></div>
+  <div class="card"><b>📲 Home screen par app</b><p class="small mute">Android Chrome: ⋮ menu → "Install app" / "Add to Home screen". iPhone Safari: Share → "Add to Home Screen".</p>
+  <button class="btn ${S.installEvt ? 'primary' : 'hide'}" id="btnInstall" data-act="install">📲 App install karo</button></div>
+  <div class="card"><b>ℹ️ Storage</b><div class="kv"><span>Kapde</span><span>${S.items.length}</span></div><div class="kv"><span>Saved outfits</span><span>${S.favs.length}</span></div><div class="kv"><span>History</span><span>${S.hist.length}</span></div><div class="kv"><span>Permanent storage</span><span id="persist">...</span></div>
+  <div class="row"><button class="btn danger" data-act="wipe">⚠️ Saara data delete karo</button></div></div>`;
+};
+
+/* ====================================================================
+   RENDER / ROUTER
+==================================================================== */
+function render() {
+  document.querySelectorAll('.bottom a').forEach(a => a.classList.toggle('on', a.dataset.r === S.route));
+  $('#view').innerHTML = VIEWS[S.route]();
+  if (S.route === 'settings' && navigator.storage && navigator.storage.persisted)
+    navigator.storage.persisted().then(p => { const e = $('#persist'); if (e) e.textContent = p ? 'Haan ✅' : 'Nahi (browser kabhi saaf kar sakta hai)'; }).catch(() => {});
+}
+function route() {
+  const r = location.hash.slice(1);
+  S.route = VIEWS[r] ? r : 'wardrobe';
+  closeSheet(); render(); window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+
+/* ====================================================================
+   EVENTS
+==================================================================== */
+const ACTIONS = {
+  goSettings() { location.hash = '#settings'; },
+  pickCamera() { $('#fileCamera').click(); },
+  pickGallery() { $('#fileGallery').click(); },
+  pickSelfie() { $('#fileSelfie').click(); },
+  importPick() { $('#fileImport').click(); },
+  analyzeAll() { runAnalyze(S.drafts.filter(d => d.status !== 'done').map(d => d.id)); },
+  analyze1(el) { runAnalyze([el.dataset.id]); },
+  saveAll() { saveDrafts(S.drafts.map(d => d.id)); },
+  save1(el) { saveDrafts([el.dataset.id]); },
+  rm(el) { S.drafts = S.drafts.filter(d => d.id !== el.dataset.id); if (!S.drafts.length) S.seen.clear(); render(); },
+  clearDrafts() { if (S.busy) return toast('Analysis chal rahi hai, thoda ruko.'); S.drafts = []; S.seen.clear(); render(); },
+  setCat(el) { S.filter.cat = el.dataset.v; render(); },
+  togColor(el) { const a = S.filter.colors, v = el.dataset.v; S.filter.colors = a.includes(v) ? a.filter(x => x !== v) : [...a, v]; render(); },
+  togStyle(el) { const a = S.filter.styles, v = el.dataset.v; S.filter.styles = a.includes(v) ? a.filter(x => x !== v) : [...a, v]; render(); },
+  openItem(el) { itemSheet(el.dataset.id, 'view'); },
+  viewItem(el) { itemSheet(el.dataset.id, 'view'); },
+  editItem(el) { itemSheet(el.dataset.id, 'edit'); },
+  closeSheet() { closeSheet(); },
+  async saveEdit() {
+    if (!S.edit) return;
+    const it = S.items.find(x => x.id === S.edit.id); if (!it) return;
+    const upd = {...it, ...toItem(S.edit.f)};
+    try { await DB.put(upd); } catch (e) { return toast('Save fail: ' + e.message, 5000); }
+    Object.assign(it, upd); S.sug = null; closeSheet(); render(); toast('✅ Changes save ho gaye.');
+  },
+  async delItem(el) {
+    if (!confirm('Ye kapda delete kar dein?')) return;
+    try { await DB.del(el.dataset.id); } catch (e) { return toast('Delete fail: ' + e.message); }
+    S.items = S.items.filter(i => i.id !== el.dataset.id); S.sug = null; closeSheet(); render(); toast('🗑️ Kapda delete ho gaya.');
+  },
+  suggest() { S.sugSeen = []; generate(); },
+  again() { if (!S.sug) return toast("Pehle 'Suggest Outfit' dabao."); S.sugSeen.push(S.sug.item_ids); generate(); },
+  async saveFav() {
+    const s = S.sug; if (!s) return;
+    if (S.favs.some(f => f.item_ids.length === s.item_ids.length && f.item_ids.every(i => s.item_ids.includes(i)))) return toast('Ye outfit pehle se saved hai.');
+    S.favs.push({id: uid(), item_ids: s.item_ids, event: s.event, weather: s.weather, reason: s.reason, saved: now()});
+    try { await DB.setKV('favs', S.favs); toast('❤️ Saved outfits mein add ho gaya!'); } catch (e) { toast('Save fail: ' + e.message); }
+  },
+  async worn() {
+    const s = S.sug; if (!s) return;
+    S.hist.push({id: uid(), date: now(), item_ids: s.item_ids, event: s.event, weather: s.weather});
+    try { await DB.setKV('hist', S.hist); toast('👕 History mein add ho gaya. Agli baar ye items kam suggest honge.', 3500); } catch (e) { toast('Save fail: ' + e.message); }
+  },
+  async delFav(el) { S.favs = S.favs.filter(f => f.id !== el.dataset.id); await DB.setKV('favs', S.favs); render(); },
+  async delHist(el) { S.hist = S.hist.filter(f => f.id !== el.dataset.id); await DB.setKV('hist', S.hist); render(); },
+  seg(el) { S.seg = el.dataset.v; render(); },
+  setSkin(el) { S.pf.skin = el.dataset.v; render(); },
+  async saveProfile() {
+    const p = {...S.pf, height: Math.min(230, Math.max(100, parseInt(S.pf.height, 10) || 170))};
+    S.pf = p; S.profile = {...p};
+    try { await DB.setKV('profile', S.profile); toast('✅ Profile save ho gayi!'); } catch (e) { toast('Save fail: ' + e.message); }
+  },
+  saveKey() {
+    const v = ($('#keyInput').value || '').trim();
+    if (!v) return toast('Key khaali hai.');
+    localStorage.setItem('gw_key', v); setModels(null); toast('✅ Key save ho gayi. Ab "Connection test" dabao.');
+  },
+  forgetKey() { localStorage.removeItem('gw_key'); localStorage.removeItem('gw_last_model'); setModels(null); render(); toast('Key hata di gayi.'); },
+  async testKey() {
+    const v = ($('#keyInput').value || '').trim(); if (v) localStorage.setItem('gw_key', v);
+    const m = $('#keyMsg'); m.className = 'small reason'; m.innerHTML = '<span class="spin"></span>Gemini se baat ho rahi hai...';
+    try { await callGemini([{text: 'Reply with the single word OK'}], {json: false}); m.className = 'note ok'; m.textContent = 'Sab theek hai ✅  Model: ' + localStorage.getItem('gw_last_model'); }
+    catch (e) { m.className = 'note err reason'; m.textContent = e.message; }
+  },
+  async refreshModels() {
+    const m = $('#keyMsg'); m.className = 'small reason'; m.innerHTML = '<span class="spin"></span>Model list le raha hoon...';
+    try { const l = await listFlashModels(); setModels(l); m.className = 'note ok reason'; m.textContent = 'Mile: ' + l.slice(0, 5).join(', ') + (l.length > 5 ? '...' : ''); }
+    catch (e) { m.className = 'note err reason'; m.textContent = e.message; }
+  },
+  export() {
+    const data = {app: 'ai-wardrobe', version: 2, exported: now(), items: S.items, profile: S.profile, favs: S.favs, hist: S.hist};
+    const blob = new Blob([JSON.stringify(data)], {type: 'application/json'}), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `wardrobe-backup-${now().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Backup file download ho rahi hai.');
+  },
+  async wipe() {
+    if (!confirm('Saara data (kapde, outfits, profile) delete ho jayega. Pakka?')) return;
+    if (!confirm('Aakhri baar puchh raha hoon: sab kuch delete karein?')) return;
+    await DB.wipe(); S.items = []; S.favs = []; S.hist = []; S.profile = null; S.pf = {...PROFILE_DEFAULT}; S.sug = null; render(); toast('Sab data delete ho gaya.');
+  },
+  async install() { if (!S.installEvt) return; S.installEvt.prompt(); await S.installEvt.userChoice.catch(() => {}); S.installEvt = null; render(); }
+};
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'sheet') return closeSheet();
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (fn) Promise.resolve().then(() => fn(el, e)).catch(err => toast('Error: ' + err.message, 5000));
+});
+
+function onField(el, live) {
+  const f = getForm(el.dataset.scope); if (!f) return;
+  const k = el.dataset.f; f[k] = el.value;
+  if (live) return;
+  if (k === 'category') fixForm(f);
+  if (['category', 'sub', 'color', 'color2'].includes(k)) refreshForm(el.dataset.scope);
+}
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.f) return onField(el, false);
+  if (el.dataset.chk === 'allowdup') { const d = S.drafts.find(x => x.id === el.dataset.id); if (d) d.allowDup = el.checked; return; }
+  if (el.dataset.sp) {
+    const k = el.dataset.sp;
+    S.sp[k] = el.type === 'checkbox' ? el.checked : (k === 'temp' ? +el.value : el.value);
+    if (k === 'useTemp') $('#tempBox').classList.toggle('hide', !S.sp.useTemp);
+    return;
+  }
+  if (el.dataset.pf) { S.pf[el.dataset.pf] = el.value; return; }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.f && el.tagName === 'INPUT') return onField(el, true);
+  if (el.dataset.sp) {
+    const k = el.dataset.sp; if (el.type === 'checkbox') return;
+    S.sp[k] = k === 'temp' ? +el.value : el.value;
+    if (k === 'temp') { const t = $('#tempVal'); if (t) t.textContent = el.value; }
+    return;
+  }
+  if (el.dataset.pf) {
+    S.pf[el.dataset.pf] = el.value;
+    if (el.dataset.pf === 'height') { const inch = Math.round((+el.value || 0) / 2.54), e2 = $('#inch'); if (e2) e2.textContent = `≈ ${Math.floor(inch / 12)} ft ${inch % 12} in`; }
+    return;
+  }
+  if (el.id === 'q') { S.filter.q = el.value; const g = $('#grid'); if (g) g.innerHTML = gridHTML(); }
+});
+
+$('#fileGallery').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; addFiles(fs); });
+$('#fileCamera').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; addFiles(fs); });
+$('#fileSelfie').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  const msg = $('#selfieMsg'); if (msg) msg.innerHTML = '<span class="spin"></span>AI dekh raha hai...';
+  try {
+    const p = await processImage(file), r = await analyzeSkin(p.img);
+    S.pf.skin = norm(r.skin_tone, Object.keys(SKIN_TONES), 'wheatish'); S.pf.undertone = norm(r.undertone, UNDERTONES, 'not sure');
+    render(); const m2 = $('#selfieMsg'); if (m2) m2.textContent = `Andaza: ${S.pf.skin} skin, ${S.pf.undertone} undertone. Check karke "Profile save karo" dabao.`;
+  } catch (err) { const m2 = $('#selfieMsg'); if (m2) m2.textContent = 'Detect nahi ho paya: ' + err.message; }
+});
+$('#fileImport').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!d || !Array.isArray(d.items)) throw new Error('Ye sahi backup file nahi lagti.');
+    let n = 0; const have = new Set(S.items.map(i => i.id));
+    for (const it of d.items) if (it && it.id && it.img && !have.has(it.id)) { await DB.put(it); S.items.push(it); n++; }
+    const mergeList = async (key, cur, inc) => { const ids = new Set(cur.map(x => x.id)); for (const x of inc || []) if (x && x.id && !ids.has(x.id)) cur.push(x); await DB.setKV(key, cur); };
+    await mergeList('favs', S.favs, d.favs); await mergeList('hist', S.hist, d.hist);
+    if (d.profile && confirm('Backup ki profile bhi restore karein? (maujooda profile badal jayegi)')) { S.profile = d.profile; S.pf = {...PROFILE_DEFAULT, ...d.profile}; await DB.setKV('profile', S.profile); }
+    render(); toast(`♻️ Restore ho gaya. ${n} naye kapde jude.`, 4000);
+  } catch (err) { toast('Restore fail: ' + err.message, 5000); }
+});
+
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); S.installEvt = e; if (S.route === 'settings') render(); });
+window.addEventListener('error', e => { console.error(e.error || e.message); });
+window.addEventListener('unhandledrejection', e => { console.error(e.reason); toast('Error: ' + ((e.reason && e.reason.message) || e.reason), 5000); });
+
+/* ====================================================================
+   START
+==================================================================== */
+(async function init() {
+  try {
+    await DB.open();
+    S.items = await DB.all();
+    S.profile = await DB.getKV('profile', null);
+    S.favs = await DB.getKV('favs', []);
+    S.hist = await DB.getKV('hist', []);
+    if (S.profile) S.pf = {...PROFILE_DEFAULT, ...S.profile};
+  } catch (e) {
+    $('#view').innerHTML = `<div class="note err">Phone ki storage khul nahi paayi: ${esc(e.message)}<br>Private/Incognito mode mein na kholo.</div>`;
+    return;
+  }
+  route();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+})();
+</script>
+</body>
+</html>
